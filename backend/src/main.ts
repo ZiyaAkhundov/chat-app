@@ -12,7 +12,6 @@ import { parseBoolean } from './shared/utils/parse-boolean.util'
 import { setupSwagger } from './core/config/swagger.config'
 import { ResponseInterceptor } from './shared/interceptors/response.interceptor'
 import { GlobalExceptionFilter } from './shared/filters/global-exception.filter'
-import { setupSession } from './core/config/session.config'
 
 async function bootstrap() {
 	const app = await NestFactory.create(CoreModule)
@@ -33,8 +32,6 @@ async function bootstrap() {
 
 	app.useGlobalInterceptors(new ResponseInterceptor());
 	app.useGlobalFilters(new GlobalExceptionFilter());
-
-	// app.use(setupSession(redis, config));
 
 	app.use(
 		session({
