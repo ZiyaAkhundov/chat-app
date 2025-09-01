@@ -9,6 +9,8 @@ import { MailModule } from '../modules/libs/mail/mail.module'
 import { AccountModule } from '../modules/auth/account/account.module'
 import { SessionModule } from '../modules/auth/session/session.module'
 import { VerificationModule } from '../modules/auth/verification/verification.module'
+import { PasswordModule } from '../modules/auth/password/password.module'
+import { TotpModule } from '../modules/auth/totp/totp.module'
 
 @Module({
 	imports: [
@@ -22,6 +24,8 @@ import { VerificationModule } from '../modules/auth/verification/verification.mo
 		AccountModule,
 		SessionModule,
 		VerificationModule,
+		PasswordModule,
+		TotpModule
 	]
 })
 export class CoreModule {}
