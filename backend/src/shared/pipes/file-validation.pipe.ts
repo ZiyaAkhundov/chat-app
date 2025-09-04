@@ -4,35 +4,37 @@ import {
 	Injectable,
 	type PipeTransform
 } from '@nestjs/common'
-import { ReadStream } from 'fs'
-import { validateFileFormat, validateFileSize } from '../utils/file.util'
 
+import {
+	validateFileFormat,
+	validateFileSizeFromBuffer
+} from '../utils/file.util'
 
 @Injectable()
 export class FileValidationPipe implements PipeTransform {
-	public async transform(value: any, metadata: ArgumentMetadata) {
-		if (!value.filename) {
+	public async transform(
+		file: Express.Multer.File,
+		metadata: ArgumentMetadata
+	) {
+		if (!file) {
 			throw new BadRequestException('File is required')
 		}
 
-		const { filename, createReadStream } = value
-
-		const fileStream = createReadStream() as ReadStream
-
 		const allowedFileFormats = ['jpg', 'jpeg', 'png', 'webp', 'gif']
 		const isFileFormatValid = validateFileFormat(
-			filename,
+			file.originalname,
 			allowedFileFormats
 		)
+		if (!isFileFormatValid) {
+			throw new BadRequestException('Invalid file format')
+		}
 
 		if (!isFileFormatValid) {
 			throw new BadRequestException('Invalid file format')
 		}
 
-		const isFileSizeValid = await validateFileSize(
-			fileStream,
-			1024 * 1024 * 5
-		)
+		const maxSize = 5 * 1024 * 1024
+		const isFileSizeValid = validateFileSizeFromBuffer(file.size, maxSize)
 
 		if (!isFileSizeValid) {
 			throw new BadRequestException(
@@ -40,6 +42,6 @@ export class FileValidationPipe implements PipeTransform {
 			)
 		}
 
-		return value
+		return file
 	}
 }

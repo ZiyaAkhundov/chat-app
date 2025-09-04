@@ -5,14 +5,18 @@ import {
 } from '@nestjs/common'
 import { type User } from '@prisma/client'
 import { hash, verify } from 'argon2'
+import sharp from 'sharp'
 
 import { PrismaService } from '@/src/core/prisma/prisma.service'
 
+import { CacheInvalidationService } from '../../libs/cache/cache-invalidation.service'
+import { StorageService } from '../../libs/storage/storage.service'
+import { VerificationService } from '../verification/verification.service'
+
 import { ChangeEmailDto } from './dto/change-email.dto'
 import { ChangePasswordDto } from './dto/change-password.dto'
+import { ChangeProfileInfoDto } from './dto/change-profile-info.dto'
 import { CreateAccountDto } from './dto/create-account.dto'
-import { VerificationService } from '../verification/verification.service'
-import { CacheInvalidationService } from '../../libs/cache/cache-invalidation.service'
 
 @Injectable()
 export class AccountService {
@@ -20,6 +24,7 @@ export class AccountService {
 		private readonly prismaService: PrismaService,
 		private readonly verificationService: VerificationService,
 		private readonly cacheInvalidationService: CacheInvalidationService,
+		private readonly storageService: StorageService
 	) {}
 
 	public async me(id: string) {
@@ -31,7 +36,7 @@ export class AccountService {
 				password: true,
 				totpSecret: true,
 				updatedAt: true,
-				createdAt: true,
+				createdAt: true
 			}
 		})
 
@@ -96,9 +101,9 @@ export class AccountService {
 				email
 			}
 		})
-		
-		await this.cacheInvalidationService.invalidateUserCache(user.id);
-		
+
+		await this.cacheInvalidationService.invalidateUserCache(user.id)
+
 		return true
 	}
 
@@ -118,6 +123,76 @@ export class AccountService {
 			data: {
 				password: await hash(newPassword)
 			}
+		})
+
+		return true
+	}
+
+	public async changeAvatar(user: User, file: Express.Multer.File) {
+		if (!file) throw new BadRequestException('File not provided')
+
+		const buffer = file.buffer
+		const fileName = `/uploads/${user.id}.webp`
+
+		if (file.originalname.endsWith('.gif')) {
+			const processedBuffer = await sharp(buffer, { animated: true })
+				.resize(512, 512)
+				.webp()
+				.toBuffer()
+
+			await this.storageService.upload(
+				processedBuffer,
+				fileName,
+				'image/webp'
+			)
+		} else {
+			const processedBuffer = await sharp(buffer)
+				.resize(512, 512)
+				.webp()
+				.toBuffer()
+
+			await this.storageService.upload(
+				processedBuffer,
+				fileName,
+				'image/webp'
+			)
+		}
+
+		await this.prismaService.user.update({
+			where: { id: user.id },
+			data: { avatar: fileName }
+		})
+
+		return true
+	}
+
+	public async removeAvatar(user: User) {
+		if (!user.avatar) return false
+
+		await this.storageService.remove(user.avatar)
+
+		await this.prismaService.user.update({
+			where: { id: user.id },
+			data: { avatar: null }
+		})
+
+		return true
+	}
+
+	public async changeProfileInfo(user: User, input: ChangeProfileInfoDto) {
+		const { username, displayName, bio } = input
+
+		const usernameExists = await this.prismaService.user.findUnique({
+			where: { username }
+		})
+
+		if (usernameExists && username !== user.username) {
+			throw new Error('Username already exists')
+		}
+
+		await this.prismaService.user.update({
+			where: { id: user.id },
+			data: { username, displayName, bio }
 		})
 
 		return true

@@ -11,6 +11,8 @@ import { SessionModule } from '../modules/auth/session/session.module'
 import { VerificationModule } from '../modules/auth/verification/verification.module'
 import { PasswordModule } from '../modules/auth/password/password.module'
 import { TotpModule } from '../modules/auth/totp/totp.module'
+import { StorageModule } from '../modules/libs/storage/storage.module'
+import { ImageModule } from '../modules/image/image.module'
 
 @Module({
 	imports: [
@@ -25,7 +27,9 @@ import { TotpModule } from '../modules/auth/totp/totp.module'
 		SessionModule,
 		VerificationModule,
 		PasswordModule,
-		TotpModule
+		TotpModule,
+		StorageModule,
+		ImageModule
 	]
 })
 export class CoreModule {}
