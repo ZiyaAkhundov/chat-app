@@ -9,7 +9,6 @@ import sharp from 'sharp'
 
 import { PrismaService } from '@/src/core/prisma/prisma.service'
 
-import { CacheInvalidationService } from '../../libs/cache/cache-invalidation.service'
 import { StorageService } from '../../libs/storage/storage.service'
 import { VerificationService } from '../verification/verification.service'
 
@@ -17,13 +16,14 @@ import { ChangeEmailDto } from './dto/change-email.dto'
 import { ChangePasswordDto } from './dto/change-password.dto'
 import { ChangeProfileInfoDto } from './dto/change-profile-info.dto'
 import { CreateAccountDto } from './dto/create-account.dto'
+import { RedisCacheService } from '../../redis/cache.service'
 
 @Injectable()
 export class AccountService {
 	public constructor(
 		private readonly prismaService: PrismaService,
 		private readonly verificationService: VerificationService,
-		private readonly cacheInvalidationService: CacheInvalidationService,
+		private readonly redisCacheService: RedisCacheService,
 		private readonly storageService: StorageService
 	) {}
 
@@ -102,7 +102,7 @@ export class AccountService {
 			}
 		})
 
-		await this.cacheInvalidationService.invalidateUserCache(user.id)
+		await this.redisCacheService.invalidateUserCache(user.id)
 
 		return true
 	}

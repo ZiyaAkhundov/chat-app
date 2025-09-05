@@ -11,65 +11,61 @@ import type { Request } from 'express'
 import { TOTP } from 'otpauth'
 
 import { PrismaService } from '@/src/core/prisma/prisma.service'
-import { RedisService } from '@/src/core/redis/redis.service'
 import { getSessionMetadata } from '@/src/shared/utils/session-metadata.util'
 import {
 	destroySession,
 	saveSession,
-	sessionKey
 } from '@/src/shared/utils/session.util'
 
 import { VerificationService } from '../verification/verification.service'
 
 import { LoginDto } from './dto/login.dto'
+import { RedisSessionService } from '../../redis/session.service'
 
 @Injectable()
 export class SessionService {
 	public constructor(
 		private readonly prismaService: PrismaService,
-		private readonly redisService: RedisService,
+		private readonly redisSessionService: RedisSessionService,
 		private readonly configService: ConfigService,
 		private readonly verificationService: VerificationService
 	) {}
 
-	public async findByUser(req: Request) {
+	public async findUserSessions(req: Request) {
 		const userId = req.session.userId
 		if (!userId) {
 			throw new NotFoundException('User not found in session')
 		}
 
-		const sessionIds = await this.redisService.getUserSessions(userId)
-		const userSessions: any[] = []
+		const sessionIds = await this.redisSessionService.getUserSessionIds(userId);
 
-		if (sessionIds.length) {
-			const values = await this.redisService.mget(
-				...sessionIds.map(id => `sessions:${id}`)
-			)
+		if (!sessionIds.length) return [];
+		
+		const values = await this.redisSessionService.getSessionsByIds(sessionIds);
 
-			values.forEach((val, idx) => {
-				if (val && sessionIds[idx] !== req.sessionID) {
-					const session = JSON.parse(val)
-					userSessions.push({
-						...session,
-						id: sessionIds[idx]
-					})
-				}
-			})
-		}
+		const userSessions = sessionIds.map((id, idx) => {
+  		    const val = values[idx];
+  		    if (!val) return null;
 
-		userSessions.sort(
-			(a, b) =>
-				new Date(b.createdAt).getTime() -
-				new Date(a.createdAt).getTime()
-		)
-
-		return userSessions
+  		    const session = JSON.parse(val);
+  		    return {
+  		      id,              
+  		      ...session      
+  		    };
+  		  }).filter(session => session && session.id !== req.sessionID);
+	  
+  		userSessions.sort(
+  		  (a, b) =>
+  		    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  		);
+	
+  		return userSessions;
 	}
 
-	public async findCurrent(req: Request) {
+	public async findCurrentSession(req: Request) {
 		const sessionId = req.sessionID
 
-		const session = await this.redisService.getCurrentSession(sessionId)
+		const session = await this.redisSessionService.getCurrentSession(sessionId)
 		if (!session) {
 			throw new NotFoundException('Current session not found')
 		}
@@ -143,13 +139,13 @@ export class SessionService {
 		const metadata = getSessionMetadata(req, userAgent)
 
 		return {
-			user: await saveSession(req, user, metadata, this.redisService),
+			user: await saveSession(req, user, metadata, this.redisSessionService),
 			message: null
 		}
 	}
 
 	public async logout(req: Request) {
-		return destroySession(req, this.configService, this.redisService)
+		return destroySession(req, this.configService, this.redisSessionService)
 	}
 
 	public async clearSession(req: Request) {
@@ -160,20 +156,16 @@ export class SessionService {
 		return true
 	}
 
-	public async remove(req: Request, id: string) {
+	public async removeSessionById(req: Request, id: string) {
+		if(!req.session.userId) return new UnauthorizedException()
+
 		if (req.session.id === id) {
 			return new ConflictException(
 				'The current session cannot be deleted'
 			)
 		}
 
-		const key = sessionKey(
-			req.session.userId,
-			id,
-			this.configService.getOrThrow<string>('SESSION_FOLDER')
-		)
-
-		await this.redisService.del(key)
+		await this.redisSessionService.clearUserSessionBySessionId(req.session.userId, req.session.id)
 
 		return true
 	}

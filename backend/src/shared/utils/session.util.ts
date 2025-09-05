@@ -5,12 +5,13 @@ import type { Request } from 'express'
 import type { SessionMetadata } from '../types/session-metadata.types'
 import { ConfigService } from '@nestjs/config'
 import type { User } from '@prisma/client'
-import { RedisService } from '@/src/core/redis/redis.service'
+import { RedisSessionService } from '@/src/modules/redis/session.service'
 
 export function saveSession(
 	req: Request,
 	user: User,
-	metadata: SessionMetadata, redisService: RedisService
+	metadata: SessionMetadata, 
+	redisSessionService: RedisSessionService
 ) {
 	return new Promise((resolve, reject) => {
 		req.session.createdAt = new Date()
@@ -24,13 +25,13 @@ export function saveSession(
 					new InternalServerErrorException('Failed to save session')
 				)
 			}
-			await redisService.addUserSession(user.id, req.sessionID)
+			await redisSessionService.addUserSession(user.id, req.sessionID)
 			resolve(user)
 		})
 	})
 }
 
-export function destroySession (req: Request, configService: ConfigService, redisService: RedisService) {
+export function destroySession (req: Request, configService: ConfigService, redisSessionService: RedisSessionService) {
     return new Promise((resolve, reject) => {
 		const userId = req.session?.userId
     	const sessionId = req.sessionID
@@ -48,17 +49,9 @@ export function destroySession (req: Request, configService: ConfigService, redi
             )
 
 			if (userId && sessionId) {
-        	await redisService.removeUserSession(userId, sessionId)
+        	await redisSessionService.removeUserSession(userId, sessionId)
       }
             resolve(true)
         })
     })
-}
-
-export function sessionKey(
-	userId: string | undefined,
-	sessionId: string,
-	prefix = 'sessions:'
-): string {
-	return `${prefix}${userId}:${sessionId || '*'}`
 }

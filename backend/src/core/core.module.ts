@@ -4,7 +4,7 @@ import { ConfigModule } from '@nestjs/config'
 import { IS_DEV_ENV } from '../shared/utils/is-dev.util'
 
 import { PrismaModule } from './prisma/prisma.module'
-import { RedisModule } from './redis/redis.module'
+import { RedisConfigModule } from './redis/redis.module'
 import { MailModule } from '../modules/libs/mail/mail.module'
 import { AccountModule } from '../modules/auth/account/account.module'
 import { SessionModule } from '../modules/auth/session/session.module'
@@ -13,6 +13,7 @@ import { PasswordModule } from '../modules/auth/password/password.module'
 import { TotpModule } from '../modules/auth/totp/totp.module'
 import { StorageModule } from '../modules/libs/storage/storage.module'
 import { ImageModule } from '../modules/image/image.module'
+import { RedisModule } from '../modules/redis/redis.module'
 
 @Module({
 	imports: [
@@ -21,6 +22,7 @@ import { ImageModule } from '../modules/image/image.module'
 			isGlobal: true
 		}),
 		PrismaModule,
+		RedisConfigModule,
 		RedisModule,
 		MailModule,
 		AccountModule,

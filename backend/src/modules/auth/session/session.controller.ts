@@ -15,8 +15,8 @@ export class SessionController {
   @ApiOperation({ summary: 'Get all sessions for the current user' })
   @ApiResponse({ status: 200, description: 'List of user sessions', type: [Object] })
 	@Get('find-all')
-	public async findByUser(@Req() req: Request) {
-		return this.sessionService.findByUser(req)
+	public async findUserSessions(@Req() req: Request) {
+		return this.sessionService.findUserSessions(req)
 	}
 
   @Authorization()
@@ -24,8 +24,8 @@ export class SessionController {
   @ApiOperation({ summary: 'Get the current session' })
   @ApiResponse({ status: 200, description: 'Current user session', type: Object })
   @Get('find-current')
-	public async findCurrent(@Req() req: Request) {
-		return this.sessionService.findCurrent(req)
+	public async findCurrentSession(@Req() req: Request) {
+		return this.sessionService.findCurrentSession(req)
 	}
 
   @ApiOperation({ summary: 'User login' })
@@ -60,7 +60,7 @@ export class SessionController {
   @ApiParam({ name: 'id', required: true, type: String, description: 'Session ID' })
   @ApiResponse({ status: 200, description: 'Session removed successfully', type: Object })
 	@Post('remove/:id')
-	public async remove(@Req() req: Request, @Param('id') id: string) {
-		return this.sessionService.remove(req, id)
+	public async removeSessionById(@Req() req: Request, @Param('id') id: string) {
+		return this.sessionService.removeSessionById(req, id)
 	}
 }

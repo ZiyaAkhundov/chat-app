@@ -6,7 +6,7 @@ import * as cookieParser from 'cookie-parser'
 import * as session from 'express-session'
 
 import { CoreModule } from './core/core.module'
-import { RedisService } from './core/redis/redis.service'
+import { RedisConfigService } from './core/redis/redis.service'
 import { ms, type StringValue } from './shared/utils/ms.util'
 import { parseBoolean } from './shared/utils/parse-boolean.util'
 import { setupSwagger } from './core/config/swagger.config'
@@ -16,7 +16,7 @@ import { GlobalExceptionFilter } from './shared/filters/global-exception.filter'
 async function bootstrap() {
 	const app = await NestFactory.create(CoreModule)
 
-	const redis = app.get(RedisService)
+	const redis = app.get(RedisConfigService)
 
 	const config = app.get(ConfigService)
 

@@ -13,14 +13,14 @@ import { saveSession } from '@/src/shared/utils/session.util'
 import { MailService } from '../../libs/mail/mail.service'
 import { TokenType, User } from '@prisma/client'
 import { VerificationDto } from './dto/verification.dto'
-import { RedisService } from '@/src/core/redis/redis.service'
+import { RedisSessionService } from '../../redis/session.service'
 
 @Injectable()
 export class VerificationService {
 	public constructor(
 		private readonly prismaService: PrismaService,
 		private readonly mailService: MailService,
-		private readonly redisService: RedisService
+		private readonly redisSessionService: RedisSessionService
 	) {}
 
 	public async verifyEmail(
@@ -65,7 +65,7 @@ export class VerificationService {
 
 		const metadata = getSessionMetadata(req, userAgent)
 
-		return saveSession(req, user, metadata, this.redisService)
+		return saveSession(req, user, metadata, this.redisSessionService)
 	}
 
 	public async sendEmailVerificationToken(user: User) {
